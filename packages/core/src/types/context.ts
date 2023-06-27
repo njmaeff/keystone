@@ -5,12 +5,14 @@ import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import type { InitialisedList } from '../lib/core/types-for-lists';
 import type { SessionStrategy } from './session';
 import type { BaseListTypeInfo, BaseKeystoneTypeInfo } from './type-info';
+import type { KeystoneClientAPI } from './KeystoneClientAPI';
 
 export type KeystoneContext<TypeInfo extends BaseKeystoneTypeInfo = BaseKeystoneTypeInfo> = {
   req?: IncomingMessage;
   res?: ServerResponse;
   db: KeystoneDbAPI<TypeInfo['lists']>;
   query: KeystoneListsAPI<TypeInfo['lists']>;
+  client: KeystoneClientAPI
   graphql: KeystoneGraphQLAPI;
   sudo: () => KeystoneContext<TypeInfo>;
   exitSudo: () => KeystoneContext<TypeInfo>;

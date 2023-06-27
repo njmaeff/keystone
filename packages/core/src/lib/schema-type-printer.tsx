@@ -1,12 +1,12 @@
 import {
-  GraphQLSchema,
-  GraphQLScalarType,
   GraphQLEnumType,
-  GraphQLType,
-  GraphQLNonNull,
-  GraphQLNamedType,
-  GraphQLList,
   GraphQLInputObjectType,
+  GraphQLList,
+  GraphQLNamedType,
+  GraphQLNonNull,
+  GraphQLScalarType,
+  GraphQLSchema,
+  GraphQLType,
   introspectionTypes,
 } from 'graphql';
 import { InitialisedList } from './core/types-for-lists';
@@ -36,12 +36,12 @@ function printTypeReference(type: GraphQLType, scalars: Record<string, string>):
 
 function printTypeReferenceWithoutNullable(
   type: GraphQLNamedType | GraphQLList<GraphQLType>,
-  scalars: Record<string, string>
+  scalars: Record<string, string>,
 ): string {
   if (type instanceof GraphQLList) {
     return `ReadonlyArray<${printTypeReference(type.ofType, scalars)}> | ${printTypeReference(
       type.ofType,
-      scalars
+      scalars,
     )}`;
   }
 
@@ -56,7 +56,7 @@ function printTypeReferenceWithoutNullable(
 
 function printInputObjectTypeDefinition(
   type: GraphQLInputObjectType,
-  scalars: Record<string, string>
+  scalars: Record<string, string>,
 ) {
   return [
     `export type ${type.name} = {`,
@@ -95,7 +95,7 @@ function printInterimType<L extends InitialisedList>(
   list: L,
   listKey: string,
   typename: string,
-  operation: 'Create' | 'Update'
+  operation: 'Create' | 'Update',
 ) {
   const prismaType = `import('${prismaClientPath}').Prisma.${listKey}${operation}Input`;
 
@@ -126,10 +126,81 @@ function printInterimType<L extends InitialisedList>(
   ].join('\n');
 }
 
+function printCoreModuleAPI<L extends InitialisedList>(
+  prismaClientPath: string,
+  listKey: string,
+) {
+  return `
+declare module '@keystone-6/core' {
+  type Prisma = import('${prismaClientPath}').Prisma;
+  export interface KeystoneClientAPI {
+    ${listKey}: {
+      findMany<Select extends Prisma.${listKey}Select>(
+        args?: {
+          readonly where?: Lists['${listKey}']['inputs']['where'];
+          readonly take?: number;
+          readonly skip?: number;
+          readonly orderBy?:
+            | Lists['${listKey}']['inputs']['orderBy']
+            | readonly Lists['${listKey}']['inputs']['orderBy'][];
+          readonly cursor?: Lists['${listKey}']['inputs']['uniqueWhere'];
+          readonly select: Select;
+        }
+      ): Promise<Prisma.${listKey}GetPayload<{select: Select}>>;
+               
+    }
+  }
+}`;
+
+  /**
+   *      findOne(
+   *         args: UniqueWhereInput<KeystoneListsTypeInfo[Key]>
+   *       );
+   *
+   *       count(args?: {
+   *         readonly where?: KeystoneListsTypeInfo[Key]['inputs']['where'];
+   *       });
+   *
+   *       updateOne(
+   *         args: UniqueWhereInput<KeystoneListsTypeInfo[Key]> & {
+   *           readonly data: KeystoneListsTypeInfo[Key]['inputs']['update'];
+   *         } & ResolveFields
+   *       );
+   *
+   *       updateMany(
+   *         args: {
+   *           readonly data: readonly (UniqueWhereInput<KeystoneListsTypeInfo[Key]> & {
+   *             readonly data: KeystoneListsTypeInfo[Key]['inputs']['update'];
+   *           })[];
+   *         }
+   *       );
+   *
+   *       createOne(
+   *         args: { readonly data: KeystoneListsTypeInfo[Key]['inputs']['create'] } & ResolveFields
+   *       );
+   *
+   *       createMany(
+   *         args: {
+   *           readonly data: readonly KeystoneListsTypeInfo[Key]['inputs']['create'][];
+   *         } & ResolveFields
+   *       )
+   *
+   *       deleteOne(
+   *         args: UniqueWhereInput<KeystoneListsTypeInfo[Key]> & ResolveFields
+   *       )
+   *
+   *       deleteMany(
+   *         args: {
+   *           readonly where: readonly KeystoneListsTypeInfo[Key]['inputs']['uniqueWhere'][];
+   *         } & ResolveFields
+   *       )
+   */
+}
+
 function printListTypeInfo<L extends InitialisedList>(
   prismaClientPath: string,
   listKey: string,
-  list: L
+  list: L,
 ) {
   // prettier-ignore
   const {
@@ -173,7 +244,7 @@ function printListTypeInfo<L extends InitialisedList>(
 export function printGeneratedTypes(
   prismaClientPath: string,
   graphQLSchema: GraphQLSchema,
-  lists: Record<string, InitialisedList>
+  lists: Record<string, InitialisedList>,
 ) {
   const interimCreateUpdateTypes = [];
   const listsTypeInfo = [];
@@ -190,8 +261,8 @@ export function printGeneratedTypes(
           list,
           listKey,
           list.graphql.names.createInputName,
-          'Create'
-        )
+          'Create',
+        ),
       );
     }
 
@@ -202,8 +273,8 @@ export function printGeneratedTypes(
           list,
           listKey,
           list.graphql.names.updateInputName,
-          'Update'
-        )
+          'Update',
+        ),
       );
     }
 
